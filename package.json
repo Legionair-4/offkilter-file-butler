@@ -1,0 +1,21 @@
+{
+  "name": "offkilter-file-butler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OffKilter File Butler plugin and desktop app core.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @offkilter/file-butler-core && npm run build --workspace @offkilter/file-butler-desktop",
+    "test": "npm run test --workspace @offkilter/file-butler-core",
+    "check": "npm run build && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

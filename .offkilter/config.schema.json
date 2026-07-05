@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offkilter.local/schemas/file-butler-config.schema.json",
+  "title": "File Butler Config",
+  "type": "object",
+  "required": ["version", "folders"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "folders": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "enabled", "sourceFolder", "action", "conflictStrategy"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "sourceFolder": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destinationFolder": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "object",
+            "required": ["type", "pattern"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "rename"
+              },
+              "pattern": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "conflictStrategy": {
+            "enum": ["append-counter", "needs-review", "skip"]
+          }
+        }
+      }
+    }
+  }
+}

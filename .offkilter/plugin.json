@@ -1,0 +1,20 @@
+{
+  "id": "offkilter.file-butler",
+  "name": "File Butler",
+  "version": "0.1.0",
+  "description": "Watch up to three folders and apply predefined safe rename actions.",
+  "entry": "packages/core/dist/index.js",
+  "capabilities": [
+    "file.plan",
+    "file.rename",
+    "file.move",
+    "file.undo"
+  ],
+  "permissions": {
+    "filesystem": {
+      "read": "user-selected-folders",
+      "write": "user-selected-folders"
+    }
+  },
+  "configSchema": ".offkilter/config.schema.json"
+}
