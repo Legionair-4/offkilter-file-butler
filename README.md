@@ -1,5 +1,9 @@
 # OffKilter File Butler
 
+<p align="center">
+  <img src="assets/brand/offkilter-logo-primary.svg" alt="OffKilter" width="380">
+</p>
+
 File Butler is an OffKilter plugin and desktop app for tidying file-heavy folders without writing scripts. It lets a user choose up to three folders, configure a safe rename/move rule for each one, preview the planned changes, apply only reviewed changes, and undo the last applied run from the recorded action log.
 
 The product is desktop-first for non-technical users. The core package is intentionally separate so the same runner can be used by:
