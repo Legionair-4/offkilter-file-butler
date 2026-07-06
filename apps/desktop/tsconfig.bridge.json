@@ -1,12 +1,12 @@
 {
   "extends": "../../tsconfig.shared.json",
   "compilerOptions": {
-    "outDir": "dist/main",
-    "rootDir": "src/main",
+    "outDir": "dist/bridge",
+    "rootDir": "src/bridge",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "types": ["node"],
     "noEmit": false
   },
-  "include": ["src/main/**/*.ts"]
+  "include": ["src/bridge/**/*.ts"]
 }

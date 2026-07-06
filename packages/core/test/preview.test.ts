@@ -26,8 +26,10 @@ test("previewFileButlerRun scans and plans UI-ready dry-run actions", async () =
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-preview-"));
   const sourceFolder = path.join(workspace, "incoming");
   const destinationFolder = path.join(workspace, "organised");
+  const receiptPath = path.join(sourceFolder, "receipt.pdf");
   await fs.mkdir(sourceFolder, { recursive: true });
-  await fs.writeFile(path.join(sourceFolder, "receipt.pdf"), "receipt", "utf8");
+  await fs.writeFile(receiptPath, "receipt", "utf8");
+  await fs.utimes(receiptPath, new Date("2026-07-05T06:00:00.000Z"), new Date("2026-07-05T06:00:00.000Z"));
 
   const result = await previewFileButlerRun(
     createConfig(sourceFolder, destinationFolder),

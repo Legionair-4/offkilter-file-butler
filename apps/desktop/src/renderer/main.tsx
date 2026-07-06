@@ -1,5 +1,7 @@
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type {
   AppliedFileAction,
   ConflictStrategy,
@@ -35,8 +37,7 @@ function App() {
   const [undoResult, setUndoResult] = useState<UndoFileAction[]>([]);
 
   useEffect(() => {
-    window.fileButler
-      .loadState()
+    invoke<AppState>("load_state")
       .then((loadedState) => {
         setState(loadedState);
         setStatusMessage("Choose folders, preview the changes, then apply when ready.");
@@ -82,13 +83,17 @@ function App() {
   }
 
   async function chooseFolder(ruleId: string, field: "sourceFolder" | "destinationFolder") {
-    const folderPath = await window.fileButler.chooseFolder();
+    const folderPath = await openDialog({
+      directory: true,
+      multiple: false,
+    });
+
     if (!folderPath) {
       return;
     }
 
     updateFolder(ruleId, {
-      [field]: folderPath,
+      [field]: Array.isArray(folderPath) ? folderPath[0] : folderPath,
       enabled: field === "sourceFolder" ? true : undefined,
     });
   }
@@ -104,8 +109,8 @@ function App() {
     setUndoResult([]);
 
     try {
-      await window.fileButler.saveConfig(state.config);
-      const nextPreview = await window.fileButler.preview(state.config);
+      await invoke<AppState>("save_config", { config: state.config });
+      const nextPreview = await invoke<PreviewResult>("preview", { config: state.config });
       setPreview(nextPreview);
       setStatusMessage(makePreviewStatus(nextPreview));
     } catch (error) {
@@ -125,8 +130,8 @@ function App() {
     setUndoResult([]);
 
     try {
-      const result = await window.fileButler.apply(state.config);
-      const loadedState = await window.fileButler.loadState();
+      const result = await invoke<{ actions: AppliedFileAction[] }>("apply", { config: state.config });
+      const loadedState = await invoke<AppState>("load_state");
       setState(loadedState);
       setApplyResult(result.actions);
       setStatusMessage(`Applied ${result.actions.filter((action) => action.status === "applied").length} action(s).`);
@@ -143,8 +148,8 @@ function App() {
     setApplyResult([]);
 
     try {
-      const result = await window.fileButler.undoLastRun();
-      const loadedState = await window.fileButler.loadState();
+      const result = await invoke<{ actions: UndoFileAction[] }>("undo_last_run");
+      const loadedState = await invoke<AppState>("load_state");
       setState(loadedState);
       setUndoResult(result.actions);
       setStatusMessage(`Undid ${result.actions.filter((action) => action.status === "undone").length} action(s).`);
@@ -176,7 +181,7 @@ function App() {
           <h1>File Butler</h1>
         </div>
         <div className="header-actions">
-          <button className="button button--secondary" type="button" onClick={() => void window.fileButler.openOffKilter()}>
+          <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
             Open OffKilter
           </button>
         </div>
@@ -222,7 +227,7 @@ function App() {
       </section>
 
       <footer className="action-bar">
-        <button className="button button--secondary" type="button" onClick={() => void window.fileButler.openOffKilter()}>
+        <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
           Get more OffKilter tools
         </button>
         <div className="action-group">
