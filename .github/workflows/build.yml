@@ -63,3 +63,4 @@ jobs:
           releaseBody: Download the installer asset below.
           releaseDraft: true
           prerelease: false
+          args: --bundles nsis
