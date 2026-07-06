@@ -2,5 +2,6 @@ node_modules/
 dist/
 packages/*/dist/
 apps/*/src-tauri/target/
+apps/*/src-tauri/gen/
 .DS_Store
 *.log
