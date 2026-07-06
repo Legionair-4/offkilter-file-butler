@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "npm run build:bridge && npm run build:renderer",
+    "build": "npm run build --workspace @offkilter/file-butler-core && npm run build:bridge && npm run build:renderer",
     "build:bridge": "tsc -p tsconfig.bridge.json",
     "build:renderer": "tsc -p tsconfig.renderer.json --noEmit && vite build",
     "dev": "vite --host 127.0.0.1",
