@@ -30,6 +30,7 @@ const emptyPreview: PreviewResult = {
 
 function App() {
   const [state, setState] = useState<AppState | undefined>();
+  const [activeRuleId, setActiveRuleId] = useState("folder-1");
   const [preview, setPreview] = useState<PreviewResult>(emptyPreview);
   const [runState, setRunState] = useState<RunState>("loading");
   const [statusMessage, setStatusMessage] = useState("Loading File Butler...");
@@ -57,6 +58,10 @@ function App() {
   const readyActionCount = useMemo(
     () => preview.actions.filter((action) => action.status === "ready").length,
     [preview.actions],
+  );
+  const activeFolder = useMemo(
+    () => state?.config.folders.find((folder) => folder.id === activeRuleId) ?? state?.config.folders[0],
+    [activeRuleId, state?.config.folders],
   );
 
   function updateConfig(updater: (config: FileButlerConfig) => FileButlerConfig) {
@@ -172,78 +177,195 @@ function App() {
   const canPreview = enabledFolderCount > 0 && !isBusy;
   const canApply = readyActionCount > 0 && !isBusy;
   const canUndo = Boolean(state.lastRunId) && !isBusy;
+  const currentStep = getCurrentStep(activeFolder, preview);
 
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <p className="eyebrow">OffKilter Plugin</p>
-          <h1>File Butler</h1>
+        <div className="brand-lockup">
+          <span className="brand-mark">OK</span>
+          <div>
+            <p className="eyebrow">OffKilter Plugin</p>
+            <h1>File Butler</h1>
+          </div>
         </div>
-        <div className="header-actions">
-          <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
-            Open OffKilter
-          </button>
+        <div className="header-summary" aria-live="polite">
+          <span>{statusMessage}</span>
+          <strong>{enabledFolderCount}/3 folders active</strong>
         </div>
+        <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
+          Open OffKilter
+        </button>
       </header>
 
-      <section className="status-strip" aria-live="polite">
-        <span>{statusMessage}</span>
-        <span>{enabledFolderCount}/3 folders enabled</span>
-      </section>
-
-      <section className="workspace-grid" aria-label="File Butler setup and preview">
-        <div className="setup-panel">
-          <div className="section-heading">
-            <h2>Folder Rules</h2>
-            <p>Each folder gets one safe rename action.</p>
+      <section className="workflow-shell" aria-label="Guided File Butler setup">
+        <aside className="workflow-rail" aria-label="Setup steps">
+          <div className="cta-panel">
+            <p className="eyebrow">OffKilter</p>
+            <h2>More tools for repetitive work.</h2>
+            <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
+              Get more OffKilter tools
+            </button>
           </div>
 
-          <div className="folder-list">
-            {state.config.folders.map((folder) => (
-              <FolderRuleCard key={folder.id} folder={folder} onChooseFolder={chooseFolder} onUpdateFolder={updateFolder} />
+          <StepList currentStep={currentStep} folder={activeFolder} preview={preview} />
+        </aside>
+
+        <section className="guided-flow">
+          <div className="flow-header">
+            <div>
+              <p className="eyebrow">Step {currentStep} of 4</p>
+              <h2>{getStepTitle(currentStep)}</h2>
+            </div>
+            <div className="flow-actions">
+              <button className="button button--secondary" type="button" disabled={!canUndo} onClick={() => void undoLastRun()}>
+                Undo last run
+              </button>
+              <button className="button button--secondary" type="button" disabled={!canPreview} onClick={() => void saveAndPreview()}>
+                Preview
+              </button>
+              <button className="button button--primary" type="button" disabled={!canApply} onClick={() => void applyReadyActions()}>
+                Apply ready actions
+              </button>
+            </div>
+          </div>
+
+          <div className="folder-tabs" role="tablist" aria-label="Folder slots">
+            {state.config.folders.map((folder, index) => (
+              <button
+                key={folder.id}
+                type="button"
+                role="tab"
+                aria-selected={folder.id === activeRuleId}
+                className={`folder-tab ${folder.id === activeRuleId ? "folder-tab--active" : ""}`}
+                onClick={() => setActiveRuleId(folder.id)}
+              >
+                <span>Folder {index + 1}</span>
+                <strong>{folder.sourceFolder ? baseName(folder.sourceFolder) : "Not selected"}</strong>
+              </button>
             ))}
           </div>
-        </div>
 
-        <div className="preview-panel">
-          <div className="section-heading">
-            <h2>Preview</h2>
-            <p>{preview.scannedFileCount} file(s) scanned, {readyActionCount} ready.</p>
-          </div>
-          <PreviewTable actions={preview.actions} />
-          <ResultList title="Apply Result" actions={applyResult} />
-          <ResultList title="Undo Result" actions={undoResult} />
-          {preview.errors.length > 0 ? (
-            <div className="error-list">
-              {preview.errors.map((error) => (
-                <p key={`${error.path}-${error.message}`}>
-                  <strong>{error.path}</strong>: {error.message}
-                </p>
-              ))}
-            </div>
+          {activeFolder ? (
+            <FolderRuleCard folder={activeFolder} onChooseFolder={chooseFolder} onUpdateFolder={updateFolder} />
           ) : null}
-        </div>
-      </section>
 
-      <footer className="action-bar">
-        <button className="button button--secondary" type="button" onClick={() => void invoke("open_offkilter")}>
-          Get more OffKilter tools
-        </button>
-        <div className="action-group">
-          <button className="button button--secondary" type="button" disabled={!canUndo} onClick={() => void undoLastRun()}>
-            Undo last run
-          </button>
-          <button className="button button--secondary" type="button" disabled={!canPreview} onClick={() => void saveAndPreview()}>
-            Preview
-          </button>
-          <button className="button button--primary" type="button" disabled={!canApply} onClick={() => void applyReadyActions()}>
-            Apply ready actions
-          </button>
-        </div>
-      </footer>
+          <PreviewPanel preview={preview} applyResult={applyResult} undoResult={undoResult} />
+        </section>
+      </section>
     </main>
   );
+}
+
+interface StepListProps {
+  currentStep: number;
+  folder: FolderRule | undefined;
+  preview: PreviewResult;
+}
+
+function StepList({ currentStep, folder, preview }: StepListProps) {
+  const steps = [
+    {
+      number: 1,
+      title: "Choose a folder",
+      detail: folder?.sourceFolder ? baseName(folder.sourceFolder) : "Pick the folder File Butler should clean.",
+    },
+    {
+      number: 2,
+      title: "Set the rename rule",
+      detail: folder?.action.pattern || "Choose how files should be renamed.",
+    },
+    {
+      number: 3,
+      title: "Preview changes",
+      detail: preview.actions.length > 0 ? `${preview.actions.length} planned change(s).` : "Check the plan before anything moves.",
+    },
+    {
+      number: 4,
+      title: "Apply safely",
+      detail: "Apply ready actions or undo the last run.",
+    },
+  ];
+
+  return (
+    <ol className="step-list">
+      {steps.map((step) => (
+        <li key={step.number} className={step.number === currentStep ? "step step--active" : "step"}>
+          <span>{step.number}</span>
+          <div>
+            <strong>{step.title}</strong>
+            <p>{step.detail}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+interface PreviewPanelProps {
+  preview: PreviewResult;
+  applyResult: AppliedFileAction[];
+  undoResult: UndoFileAction[];
+}
+
+function PreviewPanel({ preview, applyResult, undoResult }: PreviewPanelProps) {
+  const readyCount = preview.actions.filter((action) => action.status === "ready").length;
+  return (
+    <section className="preview-panel" aria-label="Preview and results">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Preview</p>
+          <h2>{readyCount} ready action(s)</h2>
+        </div>
+        <span>{preview.scannedFileCount} file(s) scanned</span>
+      </div>
+
+      <PreviewTable actions={preview.actions} />
+      <ResultList title="Apply Result" actions={applyResult} />
+      <ResultList title="Undo Result" actions={undoResult} />
+      {preview.errors.length > 0 ? (
+        <div className="error-list">
+          {preview.errors.map((error) => (
+            <p key={`${error.path}-${error.message}`}>
+              <strong>{error.path}</strong>: {error.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function getCurrentStep(folder: FolderRule | undefined, preview: PreviewResult): number {
+  if (!folder?.sourceFolder) {
+    return 1;
+  }
+
+  if (!folder.action.pattern.trim()) {
+    return 2;
+  }
+
+  if (preview.actions.length === 0 && preview.errors.length === 0) {
+    return 3;
+  }
+
+  return 4;
+}
+
+function getStepTitle(step: number): string {
+  if (step === 1) {
+    return "Choose the folder File Butler should clean.";
+  }
+
+  if (step === 2) {
+    return "Set the rename pattern.";
+  }
+
+  if (step === 3) {
+    return "Preview before anything moves.";
+  }
+
+  return "Apply the safe actions.";
 }
 
 interface FolderRuleCardProps {
