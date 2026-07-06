@@ -30,6 +30,16 @@ fn load_state(app: AppHandle) -> Result<Value, String> {
 }
 
 #[tauri::command]
+fn create_sample_workspace(app: AppHandle) -> Result<Value, String> {
+    run_bridge(&app, "createSampleWorkspace", None)
+}
+
+#[tauri::command]
+fn create_qa_workspace(app: AppHandle) -> Result<Value, String> {
+    run_bridge(&app, "createQaWorkspace", None)
+}
+
+#[tauri::command]
 fn save_config(app: AppHandle, config: Value) -> Result<Value, String> {
     run_bridge(&app, "saveConfig", Some(config))
 }
@@ -132,6 +142,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            create_sample_workspace,
+            create_qa_workspace,
             load_state,
             save_config,
             preview,

@@ -14,6 +14,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/test/*.test.js"
+    "test": "npm run test:standard && npm run test:custom",
+    "test:standard": "npm run build && node --test dist/test/standard/*.test.js",
+    "test:custom": "npm run build && node --test dist/test/custom/*.test.js"
   }
 }

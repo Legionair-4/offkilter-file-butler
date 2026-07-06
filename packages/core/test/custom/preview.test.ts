@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { previewFileButlerRun, scanConfiguredFolders, type FileButlerConfig } from "../src/index.js";
+import { previewFileButlerRun, scanConfiguredFolders, type FileButlerConfig } from "../../src/index.js";
 
 test("scanConfiguredFolders reads enabled folder files and ignores subfolders", async () => {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-scan-"));
@@ -44,6 +44,41 @@ test("previewFileButlerRun scans and plans UI-ready dry-run actions", async () =
   assert.equal(result.actions.length, 1);
   assert.equal(result.actions[0]?.status, "ready");
   assert.equal(result.actions[0]?.targetPath, path.join(destinationFolder, "2026-07-05 - receipt.pdf"));
+});
+
+test("previewFileButlerRun ignores incomplete disabled folder slots", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-disabled-slots-"));
+  const sourceFolder = path.join(workspace, "incoming");
+  const receiptPath = path.join(sourceFolder, "receipt.pdf");
+  await fs.mkdir(sourceFolder, { recursive: true });
+  await fs.writeFile(receiptPath, "receipt", "utf8");
+
+  const result = await previewFileButlerRun({
+    version: 1,
+    folders: [
+      createConfig(sourceFolder).folders[0]!,
+      {
+        id: "folder-2",
+        name: "Folder 2",
+        enabled: false,
+        sourceFolder: "",
+        action: { type: "rename", pattern: "{date} - {originalName}" },
+        conflictStrategy: "append-counter",
+      },
+      {
+        id: "folder-3",
+        name: "Folder 3",
+        enabled: false,
+        sourceFolder: "",
+        action: { type: "rename", pattern: "{date} - {originalName}" },
+        conflictStrategy: "append-counter",
+      },
+    ],
+  });
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.scannedFileCount, 1);
+  assert.equal(result.actions.length, 1);
 });
 
 test("previewFileButlerRun returns folder read errors without planning actions", async () => {

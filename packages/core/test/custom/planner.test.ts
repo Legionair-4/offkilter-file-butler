@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { planRenameActions, validateConfig, type FileButlerConfig, type SourceFile } from "../src/index.js";
+import { planRenameActions, validateConfig, type FileButlerConfig, type SourceFile } from "../../src/index.js";
 
 test("validateConfig rejects more than three watched folders", () => {
   const config: FileButlerConfig = {
@@ -91,4 +91,73 @@ test("planRenameActions appends a counter for target conflicts", () => {
 
   assert.equal(result.actions[0]?.status, "ready");
   assert.equal(result.actions[0]?.targetPath, "/receipts/2026-07-05 - upload (2).pdf");
+});
+
+test("planRenameActions marks conflicts for manual review when configured", () => {
+  const config: FileButlerConfig = {
+    version: 1,
+    folders: [
+      {
+        id: "photos",
+        name: "Photos",
+        enabled: true,
+        sourceFolder: "/photos",
+        action: { type: "rename", pattern: "{date} - {originalName}" },
+        conflictStrategy: "needs-review",
+      },
+    ],
+  };
+  const files = new Map<string, SourceFile[]>([
+    [
+      "photos",
+      [
+        {
+          absolutePath: "/photos/img.jpg",
+          fileName: "img.jpg",
+          modifiedAt: new Date("2026-07-05T01:00:00.000Z"),
+        },
+      ],
+    ],
+  ]);
+
+  const result = planRenameActions(config, files, {
+    now: new Date("2026-07-05T02:00:00.000Z"),
+    existingTargetPaths: new Set(["/photos/2026-07-05 - img.jpg"]),
+  });
+
+  assert.equal(result.actions[0]?.status, "needs-review");
+  assert.equal(result.actions[0]?.reason, "Target path already exists and needs review.");
+});
+
+test("planRenameActions skips files that already match the rendered target", () => {
+  const config: FileButlerConfig = {
+    version: 1,
+    folders: [
+      {
+        id: "clean",
+        name: "Clean",
+        enabled: true,
+        sourceFolder: "/clean",
+        action: { type: "rename", pattern: "{originalName}" },
+        conflictStrategy: "append-counter",
+      },
+    ],
+  };
+  const files = new Map<string, SourceFile[]>([
+    [
+      "clean",
+      [
+        {
+          absolutePath: "/clean/already-clean.pdf",
+          fileName: "already-clean.pdf",
+          modifiedAt: new Date("2026-07-05T01:00:00.000Z"),
+        },
+      ],
+    ],
+  ]);
+
+  const result = planRenameActions(config, files);
+
+  assert.equal(result.actions[0]?.status, "skipped");
+  assert.equal(result.actions[0]?.reason, "Source file already matches the target path.");
 });

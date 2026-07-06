@@ -10,6 +10,7 @@
     "build:bridge": "tsc -p tsconfig.bridge.json",
     "build:renderer": "tsc -p tsconfig.renderer.json --noEmit && vite build",
     "dev": "vite --host 127.0.0.1",
+    "test": "npm run build:bridge && node --test test/*.test.mjs",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },

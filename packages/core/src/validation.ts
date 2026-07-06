@@ -40,24 +40,26 @@ export function validateConfig(config: FileButlerConfig): ValidationError[] {
       errors.push({ path: `${basePath}.name`, message: "Folder rule name is required." });
     }
 
-    if (!folder.sourceFolder.trim()) {
-      errors.push({ path: `${basePath}.sourceFolder`, message: "Source folder is required." });
-    }
+    if (folder.enabled) {
+      if (!folder.sourceFolder.trim()) {
+        errors.push({ path: `${basePath}.sourceFolder`, message: "Source folder is required." });
+      }
 
-    if (folder.action.type !== "rename") {
-      errors.push({ path: `${basePath}.action.type`, message: "Only rename actions are supported in the MVP." });
-    }
+      if (folder.action.type !== "rename") {
+        errors.push({ path: `${basePath}.action.type`, message: "Only rename actions are supported in the MVP." });
+      }
 
-    if (!folder.action.pattern.trim()) {
-      errors.push({ path: `${basePath}.action.pattern`, message: "Rename pattern is required." });
-    }
+      if (!folder.action.pattern.trim()) {
+        errors.push({ path: `${basePath}.action.pattern`, message: "Rename pattern is required." });
+      }
 
-    for (const token of folder.action.pattern.match(TOKEN_PATTERN) ?? []) {
-      if (!SUPPORTED_TOKENS.has(token)) {
-        errors.push({
-          path: `${basePath}.action.pattern`,
-          message: `Unsupported rename token ${token}.`,
-        });
+      for (const token of folder.action.pattern.match(TOKEN_PATTERN) ?? []) {
+        if (!SUPPORTED_TOKENS.has(token)) {
+          errors.push({
+            path: `${basePath}.action.pattern`,
+            message: `Unsupported rename token ${token}.`,
+          });
+        }
       }
     }
   });

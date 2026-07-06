@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="170" viewBox="0 0 280 170" role="img" aria-labelledby="title">
+  <title id="title">Off Kilter OK mark</title>
+
+
+  <g transform="translate(13 10)">
+    <g><path fill="#1F2421" fill-rule="evenodd" d="M68 132c34.24 0 62-27.76 62-62S102.24 8 68 8 6 35.76 6 70s27.76 62 62 62Zm0-26c19.88 0 36-16.12 36-36S87.88 34 68 34 32 50.12 32 70s16.12 36 36 36Z"/><path fill="#285C4D" d="M125.8 94.5 142.5 111.3 182.6 70.6 199.2 87.2 142.5 144.4 109.2 111.1 125.8 94.5Z"/><path fill="#1F2421" d="M142 10h30v120h-30V10Z"/><path fill="#1F2421" d="M172 57.8 219.2 10H258l-66 67.4-20-.5V57.8Z"/><path fill="#285C4D" d="M172 82.2 219.2 130H258l-66-67.4-20 .5v19.1Z"/><path fill="#1F2421" d="M142 10h30v120h-30V10Z"/></g>
+  </g>
+</svg>

@@ -11,7 +11,9 @@
   ],
   "scripts": {
     "build": "npm run build --workspace @offkilter/file-butler-core && npm run build --workspace @offkilter/file-butler-desktop",
-    "test": "npm run test --workspace @offkilter/file-butler-core",
+    "test": "npm run test --workspace @offkilter/file-butler-core && npm run test --workspace @offkilter/file-butler-desktop",
+    "test:standard": "npm run test:standard --workspace @offkilter/file-butler-core",
+    "test:custom": "npm run test:custom --workspace @offkilter/file-butler-core",
     "check": "npm run build && npm run test"
   },
   "devDependencies": {

@@ -4,10 +4,14 @@ The desktop app should look and feel like OffKilter, not like a separate utility
 
 ## Source Of Truth
 
-Use the public OffKilter site styling as the reference:
+Use the public OffKilter site styling and the bundled brand files as the reference:
 
-- `/home/shane/projects/hard-mode/public/styles/main.css`
-- approved polished OK monogram assets from the OffKilter logo system
+- `assets/brand/offkilter-logo-primary.svg`
+- `assets/brand/offkilter-logo-compact.svg`
+- `assets/brand/offkilter-mark.svg`
+- `assets/brand/offkilter-wordmark.svg`
+- `assets/brand/offkilter-icon-512.png`
+- `assets/brand/file-butler-icon.png`
 
 ## Visual Rules
 

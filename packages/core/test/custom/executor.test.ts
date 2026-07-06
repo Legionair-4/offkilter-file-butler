@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { applyPlannedActions, undoApplyRun, type PlannedFileAction } from "../src/index.js";
+import { applyPlannedActions, undoApplyRun, type PlannedFileAction } from "../../src/index.js";
 
 test("applyPlannedActions renames ready actions and writes a run log", async () => {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-apply-"));
@@ -63,6 +63,30 @@ test("applyPlannedActions refuses to overwrite targets", async () => {
   assert.equal(await readText(targetPath), "target");
 });
 
+test("applyPlannedActions fails cleanly when the source disappears before apply", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-missing-source-"));
+  const sourcePath = path.join(workspace, "incoming", "missing.pdf");
+  const targetPath = path.join(workspace, "incoming", "renamed.pdf");
+
+  const run = await applyPlannedActions(
+    [
+      {
+        ruleId: "invoices",
+        sourcePath,
+        targetPath,
+        status: "ready",
+      },
+    ],
+    {
+      logDirectory: path.join(workspace, "logs"),
+      runId: "missing-source-run",
+    },
+  );
+
+  assert.equal(run.actions[0]?.status, "failed");
+  assert.equal(run.actions[0]?.reason, "Source file no longer exists.");
+});
+
 test("undoApplyRun reverses applied actions without overwriting originals", async () => {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-undo-"));
   const sourcePath = path.join(workspace, "incoming", "scan.pdf");
@@ -91,6 +115,38 @@ test("undoApplyRun reverses applied actions without overwriting originals", asyn
   assert.equal(undoRun.actions[0]?.status, "undone");
   assert.equal(await readText(sourcePath), "test");
   await assert.rejects(fs.access(targetPath));
+});
+
+test("undoApplyRun refuses to overwrite a recreated original file", async () => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "file-butler-undo-conflict-"));
+  const sourcePath = path.join(workspace, "incoming", "scan.pdf");
+  const targetPath = path.join(workspace, "organised", "scan.pdf");
+  const logDirectory = path.join(workspace, "logs");
+  await fs.mkdir(path.dirname(sourcePath), { recursive: true });
+  await fs.writeFile(sourcePath, "original", "utf8");
+
+  await applyPlannedActions(
+    [
+      {
+        ruleId: "invoices",
+        sourcePath,
+        targetPath,
+        status: "ready",
+      },
+    ],
+    {
+      logDirectory,
+      runId: "undo-conflict-run",
+    },
+  );
+  await fs.writeFile(sourcePath, "new file at original path", "utf8");
+
+  const undoRun = await undoApplyRun({ logDirectory, runId: "undo-conflict-run" });
+
+  assert.equal(undoRun.actions[0]?.status, "failed");
+  assert.equal(undoRun.actions[0]?.reason, "Original source path already exists; refusing to overwrite.");
+  assert.equal(await readText(sourcePath), "new file at original path");
+  assert.equal(await readText(targetPath), "original");
 });
 
 async function readText(filePath: string): Promise<string> {

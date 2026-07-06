@@ -52,6 +52,10 @@ async function handleRequest(request: BridgeRequest): Promise<unknown> {
   }
 
   switch (request.command) {
+    case "createSampleWorkspace":
+      return createSampleWorkspace(request.appDataDir);
+    case "createQaWorkspace":
+      return createQaWorkspace(request.appDataDir);
     case "loadState":
       return readState(request.appDataDir);
     case "saveConfig":
@@ -65,6 +69,99 @@ async function handleRequest(request: BridgeRequest): Promise<unknown> {
     default:
       throw new Error(`Unknown File Butler bridge command: ${request.command}`);
   }
+}
+
+async function createSampleWorkspace(appDataDir: string): Promise<StoredState> {
+  const now = new Date();
+  const workspaceName = `sample-${formatTimestamp(now)}`;
+  const workspaceDir = path.join(appDataDir, "sample-workspaces", workspaceName);
+  const sourceFolder = path.join(workspaceDir, "incoming");
+  const destinationFolder = path.join(workspaceDir, "renamed");
+
+  await fs.mkdir(sourceFolder, { recursive: true });
+  await fs.mkdir(destinationFolder, { recursive: true });
+
+  await writeSampleFile(path.join(sourceFolder, "invoice-042.pdf"), "Sample invoice PDF placeholder.\n", now);
+  await writeSampleFile(path.join(sourceFolder, "receipt coffee.jpg"), "Sample receipt image placeholder.\n", now);
+  await writeSampleFile(path.join(sourceFolder, "scan final.png"), "Sample scan image placeholder.\n", now);
+
+  const currentState = await readState(appDataDir);
+  const sampleConfig: FileButlerConfig = {
+    version: 1,
+    folders: currentState.config.folders.map((folder, index) =>
+      index === 0
+        ? {
+            ...folder,
+            enabled: true,
+            sourceFolder,
+            destinationFolder,
+            action: { type: "rename", pattern: "{date} - {originalName}" },
+            conflictStrategy: "append-counter",
+          }
+        : {
+            ...folder,
+            enabled: false,
+            sourceFolder: "",
+            destinationFolder: undefined,
+          },
+    ),
+  };
+
+  return writeState(appDataDir, {
+    ...currentState,
+    config: sampleConfig,
+    lastRunId: undefined,
+  });
+}
+
+async function createQaWorkspace(appDataDir: string): Promise<StoredState> {
+  const now = new Date();
+  const workspaceName = `qa-${formatTimestamp(now)}`;
+  const workspaceDir = path.join(appDataDir, "sample-workspaces", workspaceName);
+  const sourceFolder = path.join(workspaceDir, "incoming");
+  const destinationFolder = path.join(workspaceDir, "renamed");
+
+  await fs.mkdir(sourceFolder, { recursive: true });
+  await fs.mkdir(destinationFolder, { recursive: true });
+
+  const sampleNames = buildQaSampleFileNames();
+  await Promise.all(
+    sampleNames.map((fileName, index) =>
+      writeSampleFile(
+        path.join(sourceFolder, fileName),
+        `OffKilter File Butler QA sample ${index + 1}.\n`,
+        new Date(now.getTime() - index * 60_000),
+      ),
+    ),
+  );
+
+  const currentState = await readState(appDataDir);
+  const sampleConfig: FileButlerConfig = {
+    version: 1,
+    folders: currentState.config.folders.map((folder, index) =>
+      index === 0
+        ? {
+            ...folder,
+            enabled: true,
+            sourceFolder,
+            destinationFolder,
+            action: { type: "rename", pattern: "{date} - {originalName}" },
+            conflictStrategy: "append-counter",
+          }
+        : {
+            ...folder,
+            enabled: false,
+            sourceFolder: "",
+            destinationFolder: undefined,
+          },
+    ),
+  };
+
+  return writeState(appDataDir, {
+    ...currentState,
+    config: sampleConfig,
+    lastRunId: undefined,
+  });
 }
 
 async function saveConfig(appDataDir: string, config: FileButlerConfig): Promise<StoredState> {
@@ -191,6 +288,31 @@ function getStatePath(appDataDir: string): string {
 
 function getLogDirectory(appDataDir: string): string {
   return path.join(appDataDir, "action-logs");
+}
+
+async function writeSampleFile(filePath: string, content: string, timestamp: Date): Promise<void> {
+  await fs.writeFile(filePath, content, { encoding: "utf8", flag: "wx" });
+  await fs.utimes(filePath, timestamp, timestamp);
+}
+
+function formatTimestamp(date: Date): string {
+  return date.toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+}
+
+function buildQaSampleFileNames(): string[] {
+  const extensions = ["pdf", "jpg", "png", "docx", "xlsx", "txt"];
+  const groups = ["invoice", "receipt", "scan", "photo", "statement", "quote"];
+  const names: string[] = [];
+
+  for (let index = 1; index <= 120; index += 1) {
+    const group = groups[(index - 1) % groups.length] ?? "file";
+    const extension = extensions[(index - 1) % extensions.length] ?? "txt";
+    const paddedIndex = String(index).padStart(3, "0");
+    const separator = index % 5 === 0 ? " final " : index % 7 === 0 ? " copy " : " ";
+    names.push(`${group}${separator}${paddedIndex}.${extension}`);
+  }
+
+  return names;
 }
 
 function isMissingFileError(error: unknown): boolean {
